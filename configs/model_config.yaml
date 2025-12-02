@@ -1,0 +1,184 @@
+# Model Configuration for SOCAR Hackathon - Handwriting Data Processing
+
+# Architecture Selection
+architecture:
+  primary: "hybrid"  # hybrid, trocr, donut, layoutlm
+  use_ensemble: true
+
+# TrOCR Configuration (Line-level OCR)
+trocr:
+  model_name: "microsoft/trocr-base-handwritten"
+  # Alternatives:
+  # - "microsoft/trocr-large-handwritten"
+  # - "microsoft/trocr-base-printed"
+  input_size: [384, 384]
+  max_length: 128
+  beam_size: 5
+  early_stopping: true
+
+  # Fine-tuning
+  learning_rate: 5.0e-5
+  batch_size: 8
+  gradient_accumulation_steps: 4
+  num_epochs: 10
+  warmup_steps: 500
+  weight_decay: 0.01
+
+  # Data augmentation
+  augmentation:
+    enable: true
+    elastic_transform: true
+    random_brightness: 0.2
+    random_contrast: 0.2
+    gaussian_noise: 0.01
+    rotation_range: 2
+
+# Donut Configuration (OCR-free Document Understanding)
+donut:
+  model_name: "naver-clova-ix/donut-base"
+  # Alternatives:
+  # - "naver-clova-ix/donut-base-finetuned-docvqa"
+  input_size: [1280, 960]  # [height, width]
+  max_length: 512
+
+  # Fine-tuning
+  learning_rate: 3.0e-5
+  batch_size: 1  # Large model, small batch
+  gradient_accumulation_steps: 16
+  num_epochs: 30
+  warmup_steps: 300
+
+  # Task-specific
+  task_prompt: "<s_docvqa><s_question>Extract all fields</s_question><s_answer>"
+
+# LayoutLMv3 Configuration (Multimodal Document Understanding)
+layoutlmv3:
+  model_name: "microsoft/layoutlmv3-base"
+  # Alternatives:
+  # - "microsoft/layoutlmv3-large"
+  input_size: 224
+  max_seq_length: 512
+
+  # Fine-tuning
+  learning_rate: 5.0e-5
+  batch_size: 4
+  gradient_accumulation_steps: 8
+  num_epochs: 15
+  warmup_steps: 400
+
+  # Task configuration
+  task_type: "token_classification"  # or "sequence_classification"
+  num_labels: 9  # Adjust based on your entity types
+
+# Preprocessing Configuration
+preprocessing:
+  # Image preprocessing
+  deskew: true
+  denoise: true
+  binarization: "adaptive"  # adaptive, otsu, sauvola, none
+  contrast_enhancement: true
+  remove_borders: true
+
+  # Layout detection
+  layout_detector: "detectron2"  # detectron2, paddleocr, tesseract
+  min_text_height: 10
+  min_text_width: 10
+
+  # Line segmentation
+  line_segmentation: "projection"  # projection, morphology, deep
+  merge_close_lines: true
+  line_height_threshold: 5
+
+# Post-processing Configuration
+postprocessing:
+  # Text correction
+  spell_check: true
+  language_model: "azerbaijani"  # or multilingual
+  lexicon_path: "data/lexicons/socar_terms.txt"
+
+  # LLM-based correction (optional)
+  use_llm_correction: false
+  llm_provider: "openai"  # openai, anthropic, local
+  llm_model: "gpt-4"
+  llm_temperature: 0.1
+
+  # Confidence filtering
+  min_confidence: 0.5
+  flag_low_confidence: true
+
+# Ensemble Configuration
+ensemble:
+  strategy: "voting"  # voting, weighted, cascaded
+  weights:
+    trocr: 0.3
+    donut: 0.4
+    layoutlmv3: 0.3
+
+  # Reconciliation
+  use_spatial_alignment: true
+  use_semantic_similarity: true
+  conflict_resolution: "highest_confidence"  # highest_confidence, majority_vote
+
+# Training Configuration
+training:
+  # Hardware
+  device: "cuda"  # cuda, cpu, mps
+  mixed_precision: true  # fp16
+  num_workers: 4
+  pin_memory: true
+
+  # Checkpointing
+  save_top_k: 3
+  monitor_metric: "val_cer"  # val_cer, val_wer, val_f1
+  mode: "min"  # min for error rates, max for accuracy/f1
+
+  # Logging
+  log_every_n_steps: 50
+  use_wandb: false
+  project_name: "socar-hackathon-handwriting"
+
+  # Early stopping
+  early_stopping_patience: 5
+  early_stopping_min_delta: 0.001
+
+# Evaluation Configuration
+evaluation:
+  metrics:
+    - "cer"  # Character Error Rate
+    - "wer"  # Word Error Rate
+    - "f1"   # F1 score for entity extraction
+    - "exact_match"  # Exact match for fields
+    - "anls"  # Average Normalized Levenshtein Similarity
+
+  # Confidence calibration
+  calibration_method: "temperature_scaling"
+
+# Demo Configuration
+demo:
+  interface: "gradio"  # gradio, streamlit
+  share: false
+  enable_queue: true
+  max_file_size: 10  # MB
+  allowed_formats: ["jpg", "jpeg", "png", "pdf"]
+
+# Dataset Configuration
+dataset:
+  # Paths
+  train_path: "data/processed/train"
+  val_path: "data/processed/val"
+  test_path: "data/processed/test"
+
+  # Splits
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+
+  # Augmentation (training only)
+  augmentation_prob: 0.7
+
+  # Public datasets for pre-training/fine-tuning
+  external_datasets:
+    - "iam"  # IAM Handwriting Database
+    - "rimes"  # RIMES dataset
+    # - "cvl"  # CVL Database
+    # - "bentham"  # Bentham dataset
