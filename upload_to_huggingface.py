@@ -8,7 +8,7 @@ from huggingface_hub import HfApi, create_repo, upload_file
 # Configuration
 MODEL_PATH = "best_model.pth"
 REPO_NAME = "handwriting-recognition-iam"  # Change this to your preferred name
-USERNAME = None  # Will use your HF username automatically
+USERNAME = "IsmatS"  # Will use your HF username automatically
 
 # Files to upload
 FILES_TO_UPLOAD = [
