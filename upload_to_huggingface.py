@@ -16,7 +16,12 @@ FILES_TO_UPLOAD = [
     "README.md",
     "requirements.txt",
     "train_colab.ipynb",
-    "training_history.png"
+    "training_history.png",
+    "charts/01_sample_images.png",
+    "charts/02_text_length_distribution.png",
+    "charts/03_image_dimensions.png",
+    "charts/04_character_frequency.png",
+    "charts/05_summary_statistics.png"
 ]
 
 def upload_model_to_hf():
